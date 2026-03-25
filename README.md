@@ -1,3 +1,2 @@
 # SupplyChain_DataPlatform
 
-Hi
