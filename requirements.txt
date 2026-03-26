@@ -1,6 +1,0 @@
-apache-airflow-providers-amazon
-apache-airflow-providers-snowflake
-apache-airflow-providers-postgres
-apache-airflow-providers-google
-apache-airflow-providers-celery
-apache-airflow-providers-fab 

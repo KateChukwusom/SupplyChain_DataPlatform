@@ -1,7 +1,14 @@
 
 .env
-/airflow/logs
+/airflow-scd/logs
 logs/
 *.pyc
 __pycache__/
-
+/dbt_venv
+/aws
+awscliv2.zip
+terraform/.terraform.lock.hcl
+terraform/terraform.tfstate
+terraform/terraform.tfvars
+terraform/.terraform/
+terraform.tfstate.backup 
