@@ -1,0 +1,11 @@
+apache-airflow-providers-amazon
+apache-airflow-providers-snowflake
+apache-airflow-providers-postgres
+apache-airflow-providers-google
+apache-airflow-providers-celery
+astronomer-cosmos         
+gspread
+google-auth
+pyarrow
+boto3
+requests

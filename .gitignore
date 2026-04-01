@@ -20,3 +20,5 @@ terraform/terraform.tfstate.backup
 
 terraform.tfvars
 *.tfvars
+/airflow-scd/
+.dockerignore
