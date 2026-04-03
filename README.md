@@ -19,6 +19,7 @@ Raw data lives in multiple disconnected systems. Business decisions cannot be ma
 - Making the infrastructure deployable with a single command
 
 ## Architecture Overview
+```
 Three Data Sources
         ↓
 Airbyte Cloud (Ingestion) and Python 
@@ -38,6 +39,7 @@ Terraform (Infrastructure as Code)
 Docker (Containerisation)
         ↓
 GitHub (Version Control and CI/CD)
+```
 
 ### Here is a way to look at it diagrammatically;
 <img src="./assets/SupplyChainArch.png" width="600">
