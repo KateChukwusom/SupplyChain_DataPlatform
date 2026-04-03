@@ -12,11 +12,13 @@ terraform/terraform.tfstate
 terraform/terraform.tfvars
 terraform/.terraform/
 terraform/terraform.tfstate.backup 
-
+/orchestration/*__pycache__
 *.tfstate
 *.tfstate.backup
 .terraform/
 .terraform.lock.hcl
+snowflake_private_key.p8
+snowflake_public_key.pub
 
 terraform.tfvars
 *.tfvars
