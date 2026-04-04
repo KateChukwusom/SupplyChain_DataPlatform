@@ -1,0 +1,78 @@
+-- with sales as (
+--     select 
+--         transaction_id,
+--         store_id,
+--         product_id,
+--         quantity_sold,
+--         unit_price,
+--         discount_pct,
+--         sale_amount,
+--         transaction_timestamp,
+--         transaction_date,
+--         source_table,
+--         ingested_at
+--     from {{ ref('stg_postgres__sales') }}
+-- ),
+
+-- stores as (
+--     select 
+--         store_id,
+--         store_name,
+--         store_city,
+--         store_state,
+--         store_open_date
+--     from {{ ref('stg_gsheets__stores') }}
+-- ),
+
+-- products as (
+--     select      
+--         product_id,
+--         supplier_id,
+--         product_name,
+--         product_category,
+--         unit_price,
+--         supplier_name,
+--         supplier_category,
+--         supplier_country 
+--     from {{ ref('int_products_enriched') }}
+-- ),
+
+-- state_region as (
+--     select * from {{ ref('state_region_mapping') }}
+-- ),
+
+-- joined as (
+--     select
+--                     s.transaction_id,
+--                     s.store_id,
+--                     s.product_id,
+--                     s.quantity_sold,
+--                     s.unit_price,
+--                     s.discount_pct,
+--                     s.sale_amount,
+--                     s.transaction_date,
+--                     s.transaction_timestamp,
+--                     p.product_name,
+--                     p.product_category,
+--                     p.supplier_id,
+--                     p.supplier_name,
+--                     st.store_name,
+--                     st.store_city,
+--                     st.store_state,
+--                     st.store_open_date,
+--                     sr.region as store_region,
+--                     s.ingested_at,
+--                     dayname(s.transaction_date) as day_of_week, 
+--                     s.source_table, 
+--                     s.unit_price * s.quantity_sold as expected_sale_amount,
+--                     (s.unit_price * s.quantity_sold) - s.sale_amount as discount_amount
+--     from sales s
+--     left join stores st
+--         on s.store_id = st.store_id
+--     left join products p
+--         on s.product_id = p.product_id
+--     left join state_region sr
+--         on st.store_state = sr.state
+-- )
+
+-- select * from joined
