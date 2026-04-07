@@ -1,12 +1,12 @@
+#this file is for schema enforcement and normalisation.
+# Its job is to make sure no matter how messy or inconsistent the source JSON is, 
+# what lands in the data lake is always clean, consistently structured, and auditable.
+
 import json
 import pyarrow as pa
 from datetime import datetime, timezone
 
-# ─────────────────────────────────────────────────────────────
-# SCHEMA
-# Any field not in KNOWN_FIELDS is captured in _extra_fields
-# as JSON string instead of breaking the pipeline
-# ─────────────────────────────────────────────────────────────
+
 SCHEMA = pa.schema([
     pa.field("SHIPMENT_ID",             pa.string()),
     pa.field("WAREHOUSE_ID",            pa.string()),
@@ -22,10 +22,12 @@ SCHEMA = pa.schema([
     pa.field("_extra_fields",           pa.string()),
 ])
 
+# The 'KNOWN FIELDS' builds a set of all field names from the schema excluding the three columns
 KNOWN_FIELDS = {f.name for f in SCHEMA} - {"SOURCE_FILE", "LOADED_AT", "_extra_fields"}
 
 
 def normalise_record(record: dict, source_file: str) -> dict:
+    """This function, uppercases all keys, splits fields into known vs extra, and adds pipeline metadata """
     record = {k.upper(): v for k, v in record.items()}
 
     known = {k: str(v) if v is not None else None for k, v in record.items() if k in KNOWN_FIELDS}
@@ -43,4 +45,5 @@ def normalise_record(record: dict, source_file: str) -> dict:
 
 
 def build_table(records: list) -> pa.Table:
+    """Takes a list of normalised record dicts and converts them into a PyArrow table enforcing the schema"""
     return pa.Table.from_pylist(records, schema=SCHEMA)

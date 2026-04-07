@@ -10,8 +10,8 @@ with final as (
         supplier_id,
         supplier_name,
         supplier_category,
-        supplier_country,
-        ingested_at
+        supplier_country
+
 
     from {{ ref('stg_s3__suppliers') }}
 

@@ -1,2 +1,21 @@
 state,region
-placeholder,placeholder
+California,West
+Oregon,West
+Washington,West
+Nevada,West
+Arizona,West
+Texas,South
+Florida,South
+Georgia,South
+Louisiana,South
+North Carolina,South
+Illinois,Midwest
+Ohio,Midwest
+Michigan,Midwest
+Indiana,Midwest
+Missouri,Midwest
+New York,East
+Pennsylvania,East
+New Jersey,East
+Massachusetts,East
+Connecticut,East

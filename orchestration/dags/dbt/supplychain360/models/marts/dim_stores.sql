@@ -1,8 +1,10 @@
--- dimension: one row per store and it supports: demand forecasting, store demand variability analysis
+-- 
+-- Model: dim_store
+-- Store dimension with location and region details
+-- Grain: One row per store
+ 
 
-{{ config(materialized='table') }}
-
-with final as (
+with stores as (
 
     select
         store_id,
@@ -10,11 +12,9 @@ with final as (
         store_city,
         store_state,
         store_region,
-        store_open_date,
-        ingested_at
-
+        store_open_date
     from {{ ref('stg_gsheets__stores') }}
 
 )
 
-select * from final
+select * from stores

@@ -19,16 +19,14 @@ from include.snowflake import (
     copy_airbyte_postgres_into_snowflake,
 )
 
-# ── CONFIG ───────────────────────────────────────────────────────
 AIRBYTE_CONN_ID = "airbyte_connection"
 AIRBYTE_API_BASE = "https://api.airbyte.com"
 
-# KEPT ORIGINAL VARIABLE NAMES AS REQUESTED
+
 AIRBYTE_S3_CONNECTION_ID = Variable.get("airbyte_s3_s3_connection_id")
 AIRBYTE_POSTGRES_CONNECTION_ID = Variable.get("airbyte_postgres_s3_connection_id")
 
 
-# ── SAFE HEADER BUILDER (UPDATED FOR OAUTH) ──────────────────────
 def get_headers():
     import requests
     # Use Client ID/Secret instead of a static token to prevent "Unauthorized"
@@ -56,7 +54,7 @@ def get_headers():
     }
 
 
-# ── RESPONSE HELPERS ─────────────────────────────────────────────
+# Response
 def extract_job_id(response):
     body = response.json()
     job_id = body.get("jobId")  # ✅ FIXED
@@ -80,7 +78,7 @@ def is_sync_complete(response):
     return False
 
 
-# ── DOWNSTREAM TASK ──────────────────────────────────────────────
+# Downstream tasks
 def run_downstream(**context):
     ti = context["ti"]
     ds = context["ds"]
@@ -94,7 +92,7 @@ def run_downstream(**context):
     total_airbyte_postgres_rows = sum(s["rows_loaded"] for s in airbyte_postgres_summary)
 
     send_slack_message(
-        f":white_check_mark: *All sources loaded — pipeline complete*\n\n"
+        f": *All sources loaded — pipeline complete*\n\n"
         f">*Date:* `{ds}`\n\n"
         f">*S3 source*\n"
         f"> Table: `{s3_summary['table']}`\n"
@@ -109,7 +107,7 @@ def run_downstream(**context):
     )
 
 
-# ── DAG ─────────────────────────────────────────────────────────
+# DAG
 default_args = {
     "owner": "data-team",
     "retries": 1,
@@ -121,13 +119,13 @@ with DAG(
     dag_id="full_ingestion_pipeline",
     default_args=default_args,
     start_date=datetime(2025, 1, 1),
-    schedule="@daily",
+    schedule=None,
     catchup=False,
     max_active_runs=1,
     tags=["ingestion", "airbyte", "snowflake"],
 ) as dag:
 
-    # ── S3 ─────────────────────────────────────────
+    #  S3
     ingest_s3 = PythonOperator(
         task_id="ingest_s3_file",
         python_callable=ingest_s3_file,
@@ -138,7 +136,7 @@ with DAG(
         python_callable=copy_shipments_into_snowflake,
     )
 
-    # ── GOOGLE SHEETS ───────────────────────────────
+    # GOOGLE SHEETS 
     ingest_sheets = PythonOperator(
         task_id="ingest_google_sheets",
         python_callable=ingest_google_sheets,
@@ -149,7 +147,7 @@ with DAG(
         python_callable=copy_stores_into_snowflake,
     )
 
-    # ── AIRBYTE S3 ─────────────────────────────────
+    # AIRBYTE S3 
     trigger_airbyte_s3 = HttpOperator(
         task_id="trigger_airbyte_s3_sync",
         http_conn_id=AIRBYTE_CONN_ID,
@@ -188,7 +186,7 @@ with DAG(
         python_callable=copy_airbyte_s3_into_snowflake,
     )
 
-    # ── AIRBYTE POSTGRES ───────────────────────────
+    #  AIRBYTE POSTGRES 
     trigger_airbyte_pg = HttpOperator(
         task_id="trigger_airbyte_postgres_sync",
         http_conn_id=AIRBYTE_CONN_ID,
@@ -227,15 +225,22 @@ with DAG(
         python_callable=copy_airbyte_postgres_into_snowflake,
     )
 
-    # ── FINAL ──────────────────────────────────────
+    #  FINAL
     final = PythonOperator(
         task_id="run_downstream",
         python_callable=run_downstream,
     )
 
-    # ── DEPENDENCIES ───────────────────────────────
-    ingest_s3 >> load_s3 >> final
-    ingest_sheets >> load_sheets >> final
+    trigger_dbt = TriggerDagRunOperator(
+    task_id="trigger_dbt_transformation",
+    trigger_dag_id="kate_cosmos_dag",
+    wait_for_completion=True,
+)
 
-    trigger_airbyte_s3 >> poll_airbyte_s3 >> verify_s3 >> load_airbyte_s3 >> final
-    trigger_airbyte_pg >> poll_airbyte_pg >> verify_pg >> load_airbyte_pg >> final
+# update dependencies
+ingest_s3 >> load_s3 >> final
+ingest_sheets >> load_sheets >> final
+trigger_airbyte_s3 >> poll_airbyte_s3 >> verify_s3 >> load_airbyte_s3 >> final
+trigger_airbyte_pg >> poll_airbyte_pg >> verify_pg >> load_airbyte_pg >> final
+
+final >> trigger_dbt

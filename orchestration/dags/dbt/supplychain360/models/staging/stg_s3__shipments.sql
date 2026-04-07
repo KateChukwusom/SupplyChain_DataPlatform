@@ -1,7 +1,11 @@
+-- 
+-- Model: stg_shipments
+-- Grain: One row per shipment
+-- 
+
 with source as (
 
     select
-        loaded_at,
         shipment_id,
         warehouse_id,
         store_id,
@@ -12,6 +16,24 @@ with source as (
         actual_delivery_date,
         carrier
     from {{ source('RAW_SUPPLYCHAIN', 'SHIPMENTS') }}
+
+),
+
+deduplicated as (
+
+    
+    select distinct
+        shipment_id,
+        warehouse_id,
+        store_id,
+        product_id,
+        quantity_shipped,
+        shipment_date,
+        expected_delivery_date,
+        actual_delivery_date,
+        carrier
+    from source
+
 ),
 
 renamed as (
@@ -22,13 +44,12 @@ renamed as (
         store_id,
         product_id,
         quantity_shipped,
-        cast(shipment_date as date)             as shipment_date,
-        cast(expected_delivery_date as date)    as expected_delivery_date,
-        cast(actual_delivery_date as date)      as actual_delivery_date,
-        carrier,
-        cast(loaded_at as timestamp_ntz)        as ingested_at
+        cast(shipment_date as date) as shipment_date,
+        cast(expected_delivery_date as date)  as expected_delivery_date,
+        cast(actual_delivery_date as date)   as actual_delivery_date,
+        carrier
+    from deduplicated
 
-    from source
 )
 
 select * from renamed

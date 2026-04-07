@@ -8,9 +8,7 @@ from datetime import datetime, timezone
 import gspread
 from google.oauth2.service_account import Credentials
 
-# ─────────────────────────────────────────────────────────────
-# CONFIG
-# ─────────────────────────────────────────────────────────────
+#config
 SHEET_ID          = "1OWHfaQP_wEJxw8xQ1gz2bPZdiMRDjD2eB63grcaJTEg"
 DEST_BUCKET       = "raw-supplychain360-dekatede"
 DEST_KEY          = "raw/stores/stores.parquet"
@@ -29,9 +27,7 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
-# ─────────────────────────────────────────────────────────────
-# SCHEMA
-# ─────────────────────────────────────────────────────────────
+
 SCHEMA = pa.schema([
     pa.field("STORE_ID",        pa.string()),
     pa.field("STORE_NAME",      pa.string()),
@@ -43,9 +39,6 @@ SCHEMA = pa.schema([
 ])
 
 
-# ─────────────────────────────────────────────────────────────
-# SSM HELPERS
-# ─────────────────────────────────────────────────────────────
 def get_ssm_value(ssm, name: str, decrypt: bool = True) -> str:
     return ssm.get_parameter(Name=name, WithDecryption=decrypt)["Parameter"]["Value"]
 
@@ -53,6 +46,7 @@ def get_ssm_value(ssm, name: str, decrypt: bool = True) -> str:
 from airflow.providers.amazon.aws.hooks.base_aws import AwsBaseHook
 
 def get_clients():
+    """This connects to AWS SSM via Airflow, authenticates with Google Sheets then builds an S3 client"""
     hook = AwsBaseHook(aws_conn_id="aws_ssm", client_type="ssm", region_name="eu-west-1")
     ssm = hook.get_client_type()
 
@@ -74,10 +68,8 @@ def get_clients():
 
     return gc, s3
 
-# ─────────────────────────────────────────────────────────────
-# EXTRACT + LOAD
-# ─────────────────────────────────────────────────────────────
 def extract_stores():
+    """This reads the google sheets, normalizes the rows, builds a parquet table and uploads to s3"""
     gc, s3 = get_clients()
 
     # read sheet

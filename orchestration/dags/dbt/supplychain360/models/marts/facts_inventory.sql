@@ -1,50 +1,31 @@
--- fact table focuses on daily inventory snapshot per product per warehouse
--- grain: one row per product per warehouse per snapshot date
--- composite unique key: product_id + warehouse_id + snapshot_date
--- incremental on snapshot_date — one new partition per day
--- supports: inventory planning, stockout analysis,
---           top products causing stockouts, inventory optimization
+-- ============================================================
+-- Model: fct_inventory_snapshots
+--  Immutable daily record of stock levels per
+--          product per warehouse — the raw material for
+--          any inventory analysis
+-- Grain: One row per product per warehouse per snapshot date
+-- Depends on: int_inventory_enriched
+-- 
 
-
+        {{ config(materialized='incremental', unique_key =['product_id', 'warehouse_id', 'snapshot_date'])}}
 
 with inventory as (
 
     select
-        -- keys
         product_id,
         warehouse_id,
         snapshot_date,
-
-        -- product context
-        product_name,
-        product_category,
-        supplier_id,
-        supplier_name,
-        unit_price,
-
-        -- warehouse context
-        warehouse_city,
-        warehouse_state,
-        warehouse_region,
-
-        -- inventory measures
         quantity_available,
         reorder_threshold,
+        warehouse_region,
 
-        -- derived business metrics
-        is_below_reorder_threshold,
-        --stock_vs_threshold,
-        stock_status,
-        inventory_value,
-
-        -- audit
-        ingested_at
+        -- stockout flag for quick filtering
+        case
+            when quantity_available <= reorder_threshold then true
+            else                                              false
+        end                                         as is_stockout
 
     from {{ ref('int_inventory_enriched') }}
-
-    {% if is_incremental() %}
-        where snapshot_date > (select max(snapshot_date) from {{ this }})
-    {% endif %}
 
 )
 

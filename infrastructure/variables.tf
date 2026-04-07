@@ -1,6 +1,4 @@
-# ─────────────────────────────────────────────────────────────
-# GENERAL
-# ─────────────────────────────────────────────────────────────
+
 variable "aws_region" {
   description = "AWS region"
   type        = string
@@ -17,9 +15,7 @@ variable "project_name" {
   default     = "supplychain-dataplatform"
 }
 
-# ─────────────────────────────────────────────────────────────
-# S3
-# ─────────────────────────────────────────────────────────────
+
 variable "source_bucket_name" {
   description = "Name of the existing source S3 bucket where raw files live"
   type        = string
@@ -30,9 +26,8 @@ variable "destination_bucket_name" {
   type        = string
 }
 
-# ─────────────────────────────────────────────────────────────
 # SNOWFLAKE
-# ─────────────────────────────────────────────────────────────
+
 variable "snowflake_organization" {
   description = "Snowflake organization name"
   type        = string
@@ -63,9 +58,8 @@ variable "snowflake_database" {
   type        = string
 }
 
-# ─────────────────────────────────────────────────────────────
+
 # AIRBYTE
-# ─────────────────────────────────────────────────────────────
 variable "airbyte_workspace_id" {
   description = "Airbyte Cloud workspace ID"
   type        = string

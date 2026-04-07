@@ -1,0 +1,494 @@
+version: 2
+
+models:
+
+  - name: dim_products
+    description: >
+      Product dimension combining product attributes and
+      supplier details. One row per product.
+    columns:
+      - name: product_id
+        description: Unique identifier for each product
+        data_tests:
+          - unique
+          - not_null
+
+      - name: product_name
+        description: Display name of the product
+        data_tests:
+          - not_null
+
+      - name: product_category
+        description: Category the product belongs to
+        data_tests:
+          - not_null
+
+      - name: supplier_id
+        description: Foreign key to the supplier
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('stg_suppliers')
+              field: supplier_id
+      - name: supplier_name
+        description: Name of the supplier
+        data_tests:
+          - not_null
+
+  - name: dim_warehouses
+    description: >
+      Warehouse dimension enriched with region derived from
+      stores. One row per warehouse.
+    columns:
+      - name: warehouse_id
+        description: Unique identifier for each warehouse
+        data_tests:
+          - unique
+          - not_null
+
+      - name: warehouse_city
+        description: City where the warehouse is located
+        data_tests:
+          - not_null
+
+      - name: warehouse_state
+        description: State where the warehouse is located
+        data_tests:
+          - not_null
+
+      - name: warehouse_region
+        description: >
+          Region derived by joining to stores on city and state.
+          Should never be null if the city-state join is clean.
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['West', 'South', 'Midwest', 'East']
+
+  - name: dim_stores
+    description: >
+      Store dimension with location and region.
+      One row per store.
+    columns:
+      - name: store_id
+        description: Unique identifier for each store
+        data_tests:
+          - unique
+          - not_null
+
+      - name: store_name
+        description: Display name of the store
+        data_tests:
+          - not_null
+
+      - name: store_region
+        description: Region the store belongs to
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['West', 'South', 'Midwest', 'East']
+
+
+  - name: dim_suppliers
+    description: >
+      Standalone supplier dimension for supplier level analysis.
+      One row per supplier.
+    columns:
+      - name: supplier_id
+        description: Unique identifier for each supplier
+        data_tests:
+          - unique
+          - not_null
+
+      - name: supplier_name
+        description: Name of the supplier
+        data_tests:
+          - not_null
+
+      - name: supplier_country
+        description: Country where the supplier is based
+        data_tests:
+          - not_null
+
+  - name: dim_date
+    description: >
+      Date dimension covering 2015-01-01 to 2026-12-31.
+      One row per calendar date.
+    columns:
+      - name: date_day
+        description: The calendar date
+        data_tests:
+          - unique
+          - not_null
+
+      - name: year
+        description: Calendar year
+        data_tests:
+          - not_null
+
+      - name: month_number
+        description: Month number 1 through 12
+        data_tests:
+          - not_null
+
+      - name: quarter_number
+        description: Quarter number 1 through 4
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2, 3, 4]
+
+      - name: is_weekend
+        description: True if Saturday or Sunday
+        data_tests:
+          - not_null
+
+  - name: facts_inventory
+    description: >
+      daily record of stock levels per product per
+      warehouse. The raw material for any inventory analysis.
+      One row per product per warehouse per snapshot date.
+    columns:
+      - name: product_id
+        description: Foreign key to dim_product
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_products')
+              field: product_id
+
+      - name: warehouse_id
+        description: Foreign key to dim_warehouse
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_warehouses')
+              field: warehouse_id
+
+      - name: snapshot_date
+        description: Date of the inventory snapshot
+        data_tests:
+          - not_null
+
+      - name: quantity_available
+        description: Stock quantity on this date
+        data_tests:
+          - not_null
+
+      - name: reorder_threshold
+        description: Stockout threshold for this product
+        data_tests:
+          - not_null
+
+      - name: is_stockout
+        description: True if quantity is at or below threshold
+        data_tests:
+          - not_null
+
+      - name: warehouse_region
+        description: Region of the warehouse
+        data_tests:
+          - not_null
+
+  - name: facts_shipments
+    description: >
+      Immutable record of every shipment with delivery
+      performance metrics. One row per shipment.
+    columns:
+      - name: shipment_id
+        description: Unique identifier for each shipment
+        data_tests:
+          - unique
+          - not_null
+
+      - name: product_id
+        description: Foreign key to dim_product
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_products')
+              field: product_id
+
+      - name: warehouse_id
+        description: Foreign key to dim_warehouse
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_warehouses')
+              field: warehouse_id
+
+      - name: store_id
+        description: Foreign key to dim_store
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_stores')
+              field: store_id
+
+      - name: supplier_id
+        description: Foreign key to dim_supplier via product
+        data_tests:
+          - not_null
+
+      - name: delivery_status
+        description: On Time, Late, or Pending
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['On Time', 'Late', 'Pending']
+
+      - name: warehouse_region
+        description: Region of the origin warehouse
+        data_tests:
+          - not_null
+
+      - name: store_region
+        description: Region of the destination store
+        data_tests:
+          - not_null
+
+  - name: facts_sales
+    description: >
+      Immutable record of every sales transaction.
+      The raw material for any sales or demand analysis.
+      One row per transaction.
+    columns:
+      - name: transaction_id
+        description: Unique identifier for each transaction
+        data_tests:
+          - unique
+          - not_null
+
+      - name: store_id
+        description: Foreign key to dim_store
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_stores')
+              field: store_id
+
+      - name: product_id
+        description: Foreign key to dim_product
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_products')
+              field: product_id
+
+      - name: quantity_sold
+        description: Units sold in this transaction
+        data_tests:
+          - not_null
+
+      - name: sale_amount
+        description: Total sale value
+        data_tests:
+          - not_null
+
+      - name: transaction_date
+        description: Date of the transaction
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_date')
+              field: date_day
+
+      - name: store_region
+        description: Region where the sale occurred
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['West', 'South', 'Midwest', 'East']
+
+  - name: mart_stockout_trends
+    description: >
+      Business facing stockout trend analysis model.
+      One row per stockout event per product per warehouse.
+      Enables month over month trend tracking and regional
+      comparisons.
+    columns:
+      - name: product_id
+        description: Product that stocked out
+        data_tests:
+          - not_null
+
+      - name: warehouse_id
+        description: Warehouse where stockout occurred
+        data_tests:
+          - not_null
+
+      - name: product_name
+        description: Display name of the product
+        data_tests:
+          - not_null
+
+      - name: warehouse_region
+        description: Region of the warehouse
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['West', 'South', 'Midwest', 'East']
+
+      - name: stockout_start_date
+        description: First day of the stockout event
+        data_tests:
+          - not_null
+
+      - name: stockout_duration_days
+        description: Number of days the stockout lasted
+        data_tests:
+          - not_null
+
+      - name: stockout_month
+        description: Month the stockout started in
+        data_tests:
+          - not_null
+
+
+  - name: mart_inventory_optimization
+    description: >
+      Risk classification of product-warehouse combinations
+      based on stockout history with plain English
+      recommendations. One row per product per warehouse.
+    columns:
+      - name: product_id
+        description: Product identifier
+        data_tests:
+          - not_null
+
+      - name: warehouse_id
+        description: Warehouse identifier
+        data_tests:
+          - not_null
+
+      - name: stockout_risk_tier
+        description: High, Medium, or Low risk classification
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['High', 'Medium', 'Low']
+
+      - name: optimization_recommendation
+        description: Plain English action recommendation
+        data_tests:
+          - not_null
+
+      - name: warehouse_region
+        description: Region of the warehouse
+        data_tests:
+          - not_null
+
+  - name: mart_supplier_delivery_metrics
+    description: >
+      Supplier level delivery performance summary with rankings
+      and performance tiers. One row per supplier.
+    columns:
+      - name: supplier_id
+        description: Unique identifier for each supplier
+        data_tests:
+          - unique
+          - not_null
+
+      - name: supplier_name
+        description: Name of the supplier
+        data_tests:
+          - not_null
+
+      - name: on_time_delivery_rate_pct
+        description: Percentage of shipments delivered on time
+        data_tests:
+          - not_null
+
+      - name: performance_tier
+        description: Excellent, Good, Needs Improvement, or Poor
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['Excellent', 'Good', 'Needs Improvement', 'Poor']
+
+      - name: performance_rank
+        description: Rank among all suppliers by on time rate
+        data_tests:
+          - not_null
+
+  - name: mart_warehouse_efficiency
+    description: >
+      Warehouse level efficiency summary combining inventory
+      health and delivery performance with efficiency tiers
+      and rankings. One row per warehouse.
+    columns:
+      - name: warehouse_id
+        description: Unique identifier for each warehouse
+        data_tests:
+          - unique
+          - not_null
+
+      - name: warehouse_region
+        description: Region of the warehouse
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['West', 'South', 'Midwest', 'East']
+
+      - name: avg_stockout_rate_pct
+        description: Average daily stockout rate across all products
+        data_tests:
+          - not_null
+
+      - name: avg_on_time_delivery_rate_pct
+        description: Average daily on time delivery rate
+        data_tests:
+          - not_null
+
+      - name: efficiency_tier
+        description: Excellent, Good, Needs Improvement, or Poor
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['Excellent', 'Good', 'Needs Improvement', 'Poor']
+
+      - name: efficiency_rank
+        description: Rank among all warehouses by efficiency
+        data_tests:
+          - not_null
+
+
+  - name: mart_regional_sales_demand
+    description: >
+      Regional sales demand analysis at region-product-month
+      grain with trend labels, rankings, and growth metrics.
+      One row per region per product per month.
+    columns:
+      - name: store_region
+        description: Region where sales occurred
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['West', 'South', 'Midwest', 'East']
+
+      - name: product_id
+        description: Product identifier
+        data_tests:
+          - not_null
+
+      - name: first_day_of_month
+        description: First day of the month for this record
+        data_tests:
+          - not_null
+
+      - name: total_revenue
+        description: Total revenue for this region-product-month
+        data_tests:
+          - not_null
+
+      - name: total_quantity_sold
+        description: Total units sold for this region-product-month
+        data_tests:
+          - not_null
+
+      - name: demand_trend
+        description: Growing, Stable, Declining, or Insufficient Data
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['Growing', 'Stable', 'Declining', 'Insufficient Data']

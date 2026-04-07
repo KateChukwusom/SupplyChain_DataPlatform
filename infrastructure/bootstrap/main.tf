@@ -1,5 +1,7 @@
 
-#This is to create a storage file which is s3 bucket for storing terraform state file
+#This creates the bucket that will hold the .tfstate file for the  project. 
+# Every time Terraform runs in the root module, it reads and writes to
+# this bucket to know what infrastructure already exists, it 
 resource "aws_s3_bucket" "terraform_state" {
   bucket = "supply-chain-terraform-state-dekate" 
   lifecycle {

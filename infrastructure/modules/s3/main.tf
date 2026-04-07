@@ -1,8 +1,8 @@
 # S3 MODULE
-# Responsibility 1: Create the data lake S3 bucket
-# Responsibility 2: Create Snowflake IAM role with placeholder trust policy
-#                   Root module patches the real trust policy after
-#                   Snowflake storage integration returns its ARN + external ID
+# - Create the data lake S3 bucket
+# - Create Snowflake IAM role with placeholder trust policy
+# - Root module connects to the real trust policy after
+# - Snowflake storage integration returns its ARN + external ID
 
 terraform {
   required_providers {
@@ -13,9 +13,7 @@ terraform {
   }
 }
 
-# ─────────────────────────────────────────────────────────────
-# DATA LAKE S3 BUCKET
-# ─────────────────────────────────────────────────────────────
+# Data Lake s3 bucket
 resource "aws_s3_bucket" "data_lake" {
   
   bucket = var.destination_bucket_name
@@ -46,12 +44,11 @@ resource "aws_s3_bucket_public_access_block" "data_lake" {
   restrict_public_buckets = true
 }
 
-# ─────────────────────────────────────────────────────────────
+
 # SNOWFLAKE IAM ROLE
-# Starts with a Deny placeholder trust policy.
-# Root module overwrites it with the real Snowflake principal
+# Starts with a Deny placeholder trust policy, root module overwrites it with the real Snowflake principal
 # after the storage integration is created.
-# ─────────────────────────────────────────────────────────────
+
 data "aws_caller_identity" "current" {}
 
 resource "aws_iam_role" "snowflake_s3_role" {

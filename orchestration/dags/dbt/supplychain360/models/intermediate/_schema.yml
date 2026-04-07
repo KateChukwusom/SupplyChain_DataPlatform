@@ -1,0 +1,210 @@
+version: 2
+
+models:
+
+  - name: int_inventory_enriched
+    description: >
+      Inventory snapshots enriched with product and warehouse
+      dimensional context. One row per product per warehouse
+      per snapshot date.
+    columns:
+      - name: product_id
+        description: Foreign key to dim_product
+        data_tests:
+          - not_null
+
+      - name: warehouse_id
+        description: Foreign key to dim_warehouse
+        data_tests:
+          - not_null
+
+      - name: snapshot_date
+        description: Date of the inventory snapshot
+        data_tests:
+          - not_null
+
+      - name: quantity_available
+        description: Stock quantity on this date
+        data_tests:
+          - not_null
+
+      - name: reorder_threshold
+        description: Threshold below which a stockout is flagged
+        data_tests:
+          - not_null
+
+      - name: warehouse_region
+        description: Region of the warehouse
+        data_tests:
+          - not_null
+
+  - name: int_shipments_enriched
+    description: >
+      Shipments enriched with product, supplier, warehouse,
+      and store dimensional context.
+      One row per shipment.
+    columns:
+      - name: shipment_id
+        description: Unique identifier for each shipment
+        data_tests:
+          - unique
+          - not_null
+
+      - name: supplier_id
+        description: Supplier linked via product
+        data_tests:
+          - not_null
+
+      - name: warehouse_region
+        description: Region of the origin warehouse
+        data_tests:
+          - not_null
+
+      - name: store_region
+        description: Region of the destination store
+        data_tests:
+          - not_null
+
+  - name: int_sales_enriched
+    description: >
+      Sales transactions enriched with product, store,
+      and date dimensional context.
+      One row per transaction.
+    columns:
+      - name: transaction_id
+        description: Unique identifier for each transaction
+        data_tests:
+          - unique
+          - not_null
+
+      - name: store_region
+        description: Region of the store where the sale occurred
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['West', 'South', 'Midwest', 'East']
+
+      - name: sale_amount
+        description: Total sale value
+        data_tests:
+          - not_null
+
+
+  - name: int_stockout_events
+    description: >
+      One row per stockout event per product per warehouse.
+      A stockout event is a period of consecutive days where
+      quantity_available is at or below reorder_threshold.
+    columns:
+      - name: product_id
+        description: Product that stocked out
+        data_tests:
+          - not_null
+
+      - name: warehouse_id
+        description: Warehouse where the stockout occurred
+        data_tests:
+          - not_null
+
+      - name: stockout_start_date
+        description: First day of the stockout event
+        data_tests:
+          - not_null
+
+      - name: stockout_end_date
+        description: Last day of the stockout event
+        data_tests:
+          - not_null
+
+      - name: stockout_duration_days
+        description: Number of days the stockout lasted
+        data_tests:
+          - not_null
+
+      - name: warehouse_region
+        description: Region of the warehouse
+        data_tests:
+          - not_null
+
+  - name: int_supplier_delivery_metrics
+    description: >
+      Shipment level delivery metrics including delivery status,
+      on time flag, and delay in days.
+      One row per shipment.
+    columns:
+      - name: shipment_id
+        description: Unique identifier for each shipment
+        data_tests:
+          - unique
+          - not_null
+
+      - name: delivery_status
+        description: On Time, Late, or Pending
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['On Time', 'Late', 'Pending']
+
+      - name: supplier_id
+        description: Supplier linked via product
+        data_tests:
+          - not_null
+
+  - name: int_warehouse_efficiency_metrics
+    description: >
+      Daily warehouse efficiency metrics combining inventory
+      health and shipment performance.
+      One row per warehouse per snapshot date.
+    columns:
+      - name: warehouse_id
+        description: Warehouse identifier
+        data_tests:
+          - not_null
+
+      - name: snapshot_date
+        description: Date of the observation
+        data_tests:
+          - not_null
+
+      - name: warehouse_region
+        description: Region of the warehouse
+        data_tests:
+          - not_null
+
+      - name: total_products_tracked
+        description: Number of products tracked at this warehouse
+        data_tests:
+          - not_null
+
+  - name: int_sales_demand_metrics
+    description: >
+      Monthly sales demand metrics aggregated to region-product
+      level with month over month trend calculations.
+      One row per region per product per month.
+    columns:
+      - name: store_region
+        description: Region where sales occurred
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['West', 'South', 'Midwest', 'East']
+
+      - name: product_id
+        description: Product identifier
+        data_tests:
+          - not_null
+
+      - name: first_day_of_month
+        description: First day of the month for this record
+        data_tests:
+          - not_null
+
+      - name: total_revenue
+        description: Total revenue for this region-product-month
+        data_tests:
+          - not_null
+
+      - name: total_quantity_sold
+        description: Total units sold for this region-product-month
+        data_tests:
+          - not_null

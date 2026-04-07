@@ -1,4 +1,10 @@
+#functions from every other module and wires them together into a complete ingestion run.
+# It reads from the source bucket using one S3 client and writes to the destination bucket
+#  using a separate S3 client, keeping the two environments cleanly separated.
+
 import logging
+
+#This automatically created a default value for any key that doesn't exist yet
 from collections import defaultdict
 
 from .config import SOURCE_BUCKET, SOURCE_PREFIX, DEST_BUCKET, DEST_PREFIX, get_s3_clients
@@ -14,13 +20,20 @@ log = logging.getLogger(__name__)
 
 
 def extract_shipments():
+    #creates two separate S3 clients in one line. One client talks to the source bucket where raw JSON files live, 
+    # and the other talks to the destination bucket where processed Parquet files are written 
     source_s3, dest_s3 = get_s3_clients()
 
     watermark    = load_watermark(dest_s3)
-    last_date    = watermark["last_processed_date"]   # e.g. "2026-03-12" or None
-    failed_dates = set(watermark["failed_dates"])     # dates to retry
+
+    #pulls the last successfully processed date out of the watermark
+    last_date    = watermark["last_processed_date"]   
+    failed_dates = set(watermark["failed_dates"])     
 
     json_files = list_json_files(source_s3, SOURCE_BUCKET, SOURCE_PREFIX)
+    """This goes to the source S3 bucket and returns a list of all JSON file paths found under the given prefix,
+    creates a dictionary where every value is automatically an empty list, extract the date and groups the full S3 key under its date"""
+
 
     # group by date from filename
     files_by_date = defaultdict(list)
@@ -41,9 +54,13 @@ def extract_shipments():
 
     log.info(f"Dates to process: {dates_to_process}")
 
-    new_last_date = last_date   # will advance as each date succeeds
-    new_failed    = set()       # track any failures this run
+    #starts at whatever the last checkpoint was, any date that fails during this run gets added here
+    new_last_date = last_date   
+    new_failed    = set()       
 
+
+    """This loops through every date that needs processing, loops through every JSON file for that date,
+    reads the raw JSON from S3 and returns a list of records,and then cleans and standardises each record."""
     for date in dates_to_process:
         files       = files_by_date[date]
         all_records = []
@@ -62,7 +79,11 @@ def extract_shipments():
         if not all_records:
             log.warning(f"No records for date {date} — skipping.")
             continue
+        
 
+        """This converts the list of normalised records into a PyArrow table ready to be written as Parquet,
+         builds the destination file path in S3 for this date's Parquet file,
+         writes the Parquet file to the destination S3 bucket."""
         table    = build_table(all_records)
         dest_key = f"{DEST_PREFIX}shipments_{date}.parquet"
 

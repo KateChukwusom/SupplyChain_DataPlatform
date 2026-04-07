@@ -1,22 +1,37 @@
+-- 
+-- Model: stg_warehouses
+-- Grain: One row per warehouse
+-- 
+
 with source as (
 
-            select 
-                warehouse_id,
-                city,
-                state,
-                _airbyte_extracted_at
-                from {{ source('RAW_SUPPLYCHAIN', 'WAREHOUSES')}}
+    select
+        "warehouse_id",
+        "city",
+        "state"
+    from {{ source('RAW_SUPPLYCHAIN', 'WAREHOUSES') }}
+
+),
+
+deduplicated as (
+
+   
+                select distinct
+                    "warehouse_id",
+                    "city",
+                    "state"
+                from source
 
 ),
 
 renamed as (
 
-            select 
-                warehouse_id,
-                city as warehouse_city,
-                state as warehouse_state,
-                _airbyte_extracted_at as ingested_at
-            from source
+    select
+        "warehouse_id"      as warehouse_id,
+        "city"              as warehouse_city,
+        "state"             as warehouse_state
+    from deduplicated
+
 )
 
 select * from renamed

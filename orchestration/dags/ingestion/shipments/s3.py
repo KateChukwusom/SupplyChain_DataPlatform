@@ -1,3 +1,6 @@
+#It handles the three low-level operations of this ingestion: list, read, upload
+
+
 import io
 import json
 import logging
@@ -18,7 +21,7 @@ def list_json_files(source_s3, bucket, prefix) -> list:
                 files.append(obj["Key"])
     return sorted(files)
 
-
+#This reads a JSON file from S3 and returns its contents as a list of records
 def read_json_file(source_s3, bucket, key) -> list:
     for attempt in range(1, MAX_RETRIES + 1):
         try:
@@ -38,7 +41,10 @@ def read_json_file(source_s3, bucket, key) -> list:
             else:
                 raise
 
-
+#This takes a PyArrow table (the already transformed data),
+# converts it to Parquet format with Snappy compression in memory
+#  (using io.BytesIO so no temp files on disk), then uploads it straight to the
+# destination S3 bucket.
 def upload_parquet(dest_s3, dest_bucket, dest_key, table):
     for attempt in range(1, MAX_RETRIES + 1):
         try:

@@ -1,9 +1,11 @@
-There are 1 unused configuration paths:
-- models.supplychain360.example
 version: 2
 
 sources:
   - name: RAW_SUPPLYCHAIN
+    quoting:
+      database: false
+      schema: false
+      identifier: true
     tables:
       - name: INVENTORY
         columns:
@@ -44,7 +46,7 @@ sources:
             data_type: varchar
           - name: category
             data_type: varchar
-          - name: product_id
+          - name: PRODUCT_ID
             data_type: varchar
           - name: unit_price
             data_type: varchar

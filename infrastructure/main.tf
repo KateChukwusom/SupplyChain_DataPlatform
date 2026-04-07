@@ -1,13 +1,9 @@
 # ROOT MODULE
-# Orchestrates all three modules and handles the Snowflake
-# trust policy patch which needs outputs from both S3 and Snowflake modules.
+# Orchestrates all three modules and handles the Snowflake trust policy connection 
+# which needs outputs from both S3 and Snowflake modules.
 
-# ─────────────────────────────────────────────────────────────
+
 # SSM: POSTGRES CREDENTIALS (mentor's admin account)
-# with_decryption = false for non-sensitive values like host,
-# port, dbname, username — they are String type in SSM.
-# with_decryption = true for password — it is SecureString.
-# ─────────────────────────────────────────────────────────────
 data "aws_ssm_parameter" "postgres_host" {
   provider        = aws.admin_account
   name            = "/supplychain360/db/host"
@@ -38,11 +34,9 @@ data "aws_ssm_parameter" "postgres_password" {
   with_decryption = true
 }
 
-# ─────────────────────────────────────────────────────────────
-# SSM: AIRBYTE S3 ACCESS KEYS (your own account)
-# Both source and data lake keys stored as SecureString.
-# You added these manually before running terraform apply.
-# ─────────────────────────────────────────────────────────────
+
+# SSM: AIRBYTE S3 ACCESS KEYS
+
 data "aws_ssm_parameter" "source_aws_access_key_id" {
   name            = "/supplychain360/airbyte/source_access_key_id"
   with_decryption = true
@@ -63,18 +57,17 @@ data "aws_ssm_parameter" "datalake_aws_secret_access_key" {
   with_decryption = true
 }
 
-# ─────────────────────────────────────────────────────────────
-# SSM: SNOWFLAKE PASSWORD (your own account)
-# ─────────────────────────────────────────────────────────────
+
+# SSM: SNOWFLAKE PASSWORD
+
 data "aws_ssm_parameter" "snowflake_password" {
   name            = "/supplychain360/snowflake/password"
   with_decryption = true
 }
 
-# ─────────────────────────────────────────────────────────────
-# SSM: AIRBYTE CLIENT CREDENTIALS (your own account)
-# Used by the Airbyte provider to authenticate with Airbyte Cloud.
-# ─────────────────────────────────────────────────────────────
+# SSM: AIRBYTE CLIENT CREDENTIALS
+# Used to authenticate with Airbyte Cloud.
+
 data "aws_ssm_parameter" "airbyte_client_id" {
   name            = "/supplychain360/airbyte/client_id"
   with_decryption = true
@@ -85,11 +78,12 @@ data "aws_ssm_parameter" "airbyte_client_secret" {
   with_decryption = true
 }
 
-# ─────────────────────────────────────────────────────────────
+
 # MODULE: S3
-# Creates data lake bucket + Snowflake IAM role.
-# Outputs bucket name and role ARN used by other modules.
-# ─────────────────────────────────────────────────────────────
+# Creates data lake bucket + Snowflake IAM role with no trust policy for now,
+#because snowflake real ARN does not exist yet
+#This module gets two outputs for us: S3 role ARN and bucket name destination for Airbyte
+
 module "s3" {
   source = "./modules/s3"
 
@@ -97,13 +91,12 @@ module "s3" {
   project_name            = var.project_name
 }
 
-# ─────────────────────────────────────────────────────────────
 # MODULE: SNOWFLAKE
 # Creates all Snowflake infrastructure.
-# Depends on S3 module for bucket name and IAM role ARN.
-# Outputs Snowflake-generated IAM user ARN + external ID
-# which are needed to patch the trust policy below.
-# ─────────────────────────────────────────────────────────────
+# It then assumes s3 IAM role to read from s3 and also create storage integration
+#It produces two outputs: snowflake storage user ARN and extrenal ID, to establish trust policy
+
+
 module "snowflake" {
   source = "./modules/snowflake"
 
@@ -113,8 +106,8 @@ module "snowflake" {
   snowflake_s3_role_arn   = module.s3.snowflake_s3_role_arn
 }
 
-# ─────────────────────────────────────────────────────────────
-# SNOWFLAKE TRUST POLICY PATCH
+
+# SNOWFLAKE TRUST POLICY 
 # This lives in root because it needs outputs from BOTH modules:
 #   - IAM role name from module.s3
 #   - Snowflake IAM user ARN + external ID from module.snowflake
@@ -123,9 +116,9 @@ module "snowflake" {
 #   1. S3 module creates the IAM role with a Deny placeholder
 #   2. Snowflake module creates the storage integration
 #   3. Snowflake generates a unique IAM user ARN + external ID
-#   4. Root module patches the IAM role trust policy with those real values
+#   4. Root module connects the IAM role trust policy with those real values
 #   5. Snowflake can now assume the role and read from S3
-# ─────────────────────────────────────────────────────────────
+
 data "aws_iam_policy_document" "snowflake_s3_trust_policy" {
   statement {
     effect  = "Allow"
@@ -159,12 +152,12 @@ resource "aws_iam_role" "snowflake_s3_trust_patch" {
   depends_on = [module.snowflake]
 }
 
-# ─────────────────────────────────────────────────────────────
+
 # MODULE: AIRBYTE
 # Creates sources, destination, and connections.
 # Depends on S3 module for destination bucket name.
-# All credentials come from SSM — nothing hardcoded.
-# ─────────────────────────────────────────────────────────────
+# All credentials come from SSM nothing hardcoded.
+
 module "airbyte" {
   source = "./modules/airbyte"
 

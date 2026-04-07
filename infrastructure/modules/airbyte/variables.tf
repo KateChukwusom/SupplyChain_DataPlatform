@@ -1,14 +1,11 @@
-# ─────────────────────────────────────────────────────────────
-# AIRBYTE
-# ─────────────────────────────────────────────────────────────
+
 variable "airbyte_workspace_id" {
   description = "Airbyte Cloud workspace ID"
   type        = string
 }
 
-# ─────────────────────────────────────────────────────────────
-# SOURCE S3
-# ─────────────────────────────────────────────────────────────
+# Source bucket
+
 variable "source_bucket_name" {
   description = "Name of the existing source S3 bucket where raw files live"
   type        = string
@@ -26,9 +23,9 @@ variable "source_aws_secret_access_key" {
   sensitive   = true
 }
 
-# ─────────────────────────────────────────────────────────────
-# DESTINATION S3 (Data Lake)
-# ─────────────────────────────────────────────────────────────
+
+#  S3 (Data Lake)
+
 variable "destination_bucket_name" {
   description = "Name of the data lake S3 bucket Airbyte writes to"
   type        = string
@@ -51,9 +48,9 @@ variable "aws_region" {
   description = "AWS region for the destination S3 bucket"
   type        = string
 }
-# ─────────────────────────────────────────────────────────────
+
 # POSTGRES
-# ─────────────────────────────────────────────────────────────
+
 variable "postgres_host" {
   description = "Hostname of Postgres database"
   type        = string

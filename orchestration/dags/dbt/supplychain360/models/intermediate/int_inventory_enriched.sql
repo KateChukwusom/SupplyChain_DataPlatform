@@ -1,79 +1,82 @@
--- with inventory as (
 
---     select 
---             product_id,
---             warehouse_id,
---             snapshot_date,
---             quantity_available,
---             reorder_threshold,
---             ingested_at
-    
---      from {{ ref('stg_s3__inventory') }}
--- ),
+-- int_inventory_enriched
+-- Purpose: Joins inventory snapshots to product and warehouse
+--          dimensions to produce a fully enriched dataset
+--          that intermediate metrics models build on top of
+-- grain:  One row per product per warehouse per snapshot date
+{{ config(
+    materialized='incremental',
+    unique_key=['product_id', 'warehouse_id', 'snapshot_date']
+) }}
 
--- warehouses as (
+with inventory as (
 
---     select 
---                 warehouse_id,
---                 warehouse_city,
---                 warehouse_state
-    
---     from {{ ref('stg_s3__warehouses') }}
--- ),
+    -- daily stock level snapshots per product per warehouse
+    select
+        product_id,
+        warehouse_id,
+        snapshot_date,
+        quantity_available,
+        reorder_threshold
+    from {{ ref('stg_s3__inventory') }}
 
+),
 
--- products as (
+products as (
 
---     select 
---     *
---          from {{ ref('int_products_enriched') }}
--- ),
--- state_region as (
+    -- product and supplier context
+    select
+        product_id,
+        product_name,
+        product_brand,
+        product_category,
+        supplier_id,
+        supplier_name
+    from {{ ref('dim_products') }}
 
---     select * from {{ ref('state_region_mapping') }}
--- ),
+),
 
--- joined as (
+warehouses as (
 
---     select
+    -- warehouse location and region context
+    select
+        warehouse_id,
+        warehouse_city,
+        warehouse_state,
+        warehouse_region
+    from {{ ref('dim_warehouses') }}
 
---         i.product_id,
---         i.warehouse_id,
---         i.snapshot_date,
---         i.quantity_available,
---         i.reorder_threshold,
+),
 
---         -- stockout flag, a flag to measure reorder threshold against quantity available
---         {{ is_below_reorder_threshold('i.quantity_available', 'i.reorder_threshold') }}
---             as is_below_reorder_threshold,
+enriched as (
 
---         p.product_name,
---         p.product_category,
---         p.unit_price,
---         p.supplier_id,
---         p.supplier_name,
---         w.warehouse_city,
---         w.warehouse_state,
---         sr.region          as warehouse_region,
---         i.ingested_at,
---         -- stock status for severity classification
---         case
---             when i.quantity_available = 0 then 'out_of_stock'
---             when i.quantity_available <= i.reorder_threshold * 0.5  then 'critical'
---             when i.quantity_available <= i.reorder_threshold then 'low'
---             else 'healthy'
---         end as stock_status,
+    -- combine inventory with product and warehouse details
+    select
+        -- inventory 
+        i.product_id,
+        i.warehouse_id,
+        i.snapshot_date,
+        i.quantity_available,
+        i.reorder_threshold,
 
---         -- monetary value of stock in this warehouse
---         i.quantity_available * p.unit_price  as inventory_value
+        -- product 
+        p.product_name,
+        p.product_brand,
+        p.product_category,
+        p.supplier_id,
+        p.supplier_name,
 
---     from inventory i
---     left join products p
---         on i.product_id = p.product_id
---     left join warehouses w
---         on i.warehouse_id = w.warehouse_id
---     left join state_region sr
---         on w.warehouse_state = sr.state
--- )
+        -- warehouse t
+        w.warehouse_city,
+        w.warehouse_state,
+        w.warehouse_region
 
--- select * from joined
+    from inventory i
+    left join products p
+        on i.product_id = p.product_id
+    left join warehouses w
+        on i.warehouse_id = w.warehouse_id
+
+)
+
+select * from enriched
