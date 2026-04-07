@@ -288,10 +288,10 @@ Seven tables total across the three sources. They fall into two categories with 
 Materializations were chosen to balance storage cost and compute
 performance. Views cost nothing to store but recompute on every query.
 Tables and incrementals cost storage but are fast to query.
-```
+
 | Layer | Materialization | Reason |
 |---|---|---|
-| Staging | View | Simple cleaning logic, no storage needed |
+| Staging | View | No storage needed
 | Dimensions | Table | Small reference tables, cheap to recompute |
 | Intermediate Enriched | View | Join logic only, no storage needed |
 | `int_stockout_events` | Tabale | Requires full history for window function event grouping |
@@ -301,23 +301,22 @@ Tables and incrementals cost storage but are fast to query.
 | Facts | Incremental | Large transactional tables that grow over time |
 | Marts | Table | Queried directly by BI tools, must be fast |
 
-```
 ## Macros
 
 ### `delivery_metrics.sql`
 
 Contains three reusable macros used across shipment-related models:
 
-**`is_on_time(actual_date, expected_date)`
+- `is_on_time(actual_date, expected_date)`
 Returns `true` if a shipment was delivered on or before the expected
 date, `false` if late, and `null` if still pending. Used in
 `int_supplier_delivery_metrics` and `fct_shipments`.
 
-**`delivery_status(actual_date, expected_date)`
+- `delivery_status(actual_date, expected_date)`
 Returns a human readable label: `On Time`, `Late`, or `Pending`.
 Used in `int_supplier_delivery_metrics` and `mart_supplier_delivery_performance`.
 
-**`delay_in_days(actual_date, expected_date)`
+- `delay_in_days(actual_date, expected_date)`
 Calculates how many days late a shipment was. Returns a positive
 number if late, negative if early, and `null` if pending. Used in
 `int_supplier_delivery_metrics` and `mart_supplier_delivery_performance`.
@@ -327,7 +326,6 @@ number if late, negative if early, and `null` if pending. Used in
 All marts are materialised as tables for fast BI tool query
 performance. Each mart is designed to answer a specific business
 requirement directly without requiring downstream transformation.
----
 
 ### Product Stockout Trends
 
@@ -416,7 +414,7 @@ Business questions enabled:
 - Is there a regional pattern in warehouse performance?
 ---
 
-### Requirement 4 — Regional Sales Demand
+###  Regional Sales Demand
 
 #### `mart_regional_sales_demand`
 Monthly sales demand analysis at region-product-month grain with
@@ -469,6 +467,7 @@ dbt test
 - On any task failure, on_failure_callback fires a Slack alert immediately.
 
 - Pictorially;
+  
    <img src="./assets/Airflowdag.png" width="600">
 
 ### Cosmos for dbt 
