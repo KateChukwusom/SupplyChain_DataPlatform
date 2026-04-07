@@ -64,6 +64,104 @@ GitHub (Version Control and CI/CD)
 | Containerisation | Docker / Docker Compose | — |
 | Notifications | Slack | — |
 
+## Project Structure
+```
+supplychain360/
+├── infrastructure/                      # Terraform IaC
+│   ├── bootstrap/                       # Remote state bootstrap
+│   │   ├── main.tf
+│   │   └── versions.tf
+│   ├── modules/                         # Reusable Terraform modules
+│   │   ├── airbyte/
+│   │   │   ├── main.tf
+│   │   │   ├── outputs.tf
+│   │   │   └── variables.tf
+│   │   ├── s3/
+│   │   │   ├── main.tf
+│   │   │   ├── outputs.tf
+│   │   │   └── variables.tf
+│   │   └── snowflake/
+│   │       ├── main.tf
+│   │       ├── outputs.tf
+│   │       └── variables.tf
+│   ├── backend.tf
+│   ├── main.tf
+│   ├── outputs.tf
+│   ├── provider.tf
+│   ├── variables.tf
+│   └── terraform.tfvars
+└── orchestration/                       # Airflow orchestration
+    ├── dags/
+    │   ├── dbt/
+    │   │   └── supplychain360/          # dbt project root
+    │   │       ├── macros/
+    │   │       │   ├── delivery_delay_days.sql
+    │   │       │   ├── delivery_status.sql
+    │   │       │   ├── generate_schema_name.sql
+    │   │       │   ├── is_below_reorder_threshold.sql
+    │   │       │   └── is_on_time.sql
+    │   │       ├── models/
+    │   │       │   ├── staging/
+    │   │       │   │   ├── _sources.yml
+    │   │       │   │   ├── _schema.yml
+    │   │       │   │   ├── stg_s3__inventory.sql
+    │   │       │   │   ├── stg_s3__products.sql
+    │   │       │   │   ├── stg_s3__suppliers.sql
+    │   │       │   │   ├── stg_s3__warehouses.sql
+    │   │       │   │   ├── stg_s3__shipments.sql
+    │   │       │   │   ├── stg_gsheets__stores.sql
+    │   │       │   │   └── stg_postgres__sales.sql
+    │   │       │   ├── intermediate/
+    │   │       │   │   ├── _schema.yml
+    │   │       │   │   ├── int_inventory_enriched.sql
+    │   │       │   │   ├── int_shipments_enriched.sql
+    │   │       │   │   ├── int_sales_enriched.sql
+    │   │       │   │   ├── int_stockout_events.sql
+    │   │       │   │   ├── int_supplier_delivery_metrics.sql
+    │   │       │   │   ├── int_warehouse_efficiency_metrics.sql
+    │   │       │   │   └── int_sales_demand_metrics.sql
+    │   │       │   └── marts/
+    │   │       │       ├── _schema.yml
+    │   │       │       ├── dim_products.sql
+    │   │       │       ├── dim_warehouses.sql
+    │   │       │       ├── dim_stores.sql
+    │   │       │       ├── dim_suppliers.sql
+    │   │       │       ├── dim_date.sql
+    │   │       │       ├── facts_inventory.sql
+    │   │       │       ├── facts_shipments.sql
+    │   │       │       ├── facts_sales.sql
+    │   │       │       ├── mart_stockout_trends.sql
+    │   │       │       ├── mart_inventory_optimization.sql
+    │   │       │       ├── mart_supplier_delivery_metrics.sql
+    │   │       │       ├── mart_warehouse_efficiency.sql
+    │   │       │       └── mart_regional_sales_demand.sql
+    │   │       ├── seeds/
+    │   │       │   └── state_region_mapping.csv
+    │   │       ├── dbt_project.yml
+    │   │       └── packages.yml
+    │   ├── supplychain_dbt.py           # Cosmos dbt DAG
+    │   └── supplychain_ingestion.py     # Ingestion DAG
+    ├── include/
+    │   ├── ingestion.py
+    │   ├── snowflake.py
+    │   ├── airbyte.py
+    │   ├── slack.py
+    │   └── callbacks.py
+    ├── ingestion/                       # Custom ingestion modules
+    │   ├── shipments/
+    │   │   ├── checkpoint.py
+    │   │   ├── config.py
+    │   │   ├── extract.py
+    │   │   ├── s3.py
+    │   │   └── transform.py
+    │   └── stores/
+    │       └── extract_stores.py
+    ├── Dockerfile
+    ├── docker-compose.yaml
+    ├── requirements.txt
+    └── .env
+```
+
 ## Infrastructure-as-code(Terraform)
 
 ```
