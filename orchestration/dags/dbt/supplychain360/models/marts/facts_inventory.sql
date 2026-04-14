@@ -1,11 +1,9 @@
--- ============================================================
--- Model: fct_inventory_snapshots
---  Immutable daily record of stock levels per
---          product per warehouse — the raw material for
---          any inventory analysis
+
+--  facts_inventory
+-- daily record of stock levels per product per warehouse 
 -- Grain: One row per product per warehouse per snapshot date
--- Depends on: int_inventory_enriched
--- 
+
+ 
 
         {{ config(materialized='incremental', unique_key =['product_id', 'warehouse_id', 'snapshot_date'])}}
 

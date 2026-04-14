@@ -1,5 +1,5 @@
 
---  fct_shipments
+--  facts_shipments
 --  Record of every shipment with delivery
 --          performance metrics 
 -- Grain: One row per shipment

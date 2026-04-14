@@ -1,11 +1,12 @@
 import json
 from datetime import datetime, timedelta
-
-from airflow import DAG
-from airflow.models import Variable
+import requests
+from airflow.sdk import Variable, DAG
 from airflow.providers.standard.operators.python import PythonOperator
 from airflow.providers.http.operators.http import HttpOperator
 from airflow.providers.http.sensors.http import HttpSensor
+from airflow.providers.standard.operators.trigger_dagrun import TriggerDagRunOperator
+
 
 # Imports
 from include.slack import send_slack_message
@@ -28,7 +29,6 @@ AIRBYTE_POSTGRES_CONNECTION_ID = Variable.get("airbyte_postgres_s3_connection_id
 
 
 def get_headers():
-    import requests
     # Use Client ID/Secret instead of a static token to prevent "Unauthorized"
     client_id = Variable.get("AIRBYTE_CLIENT_ID").strip()
     client_secret = Variable.get("AIRBYTE_CLIENT_SECRET").strip()
@@ -57,7 +57,7 @@ def get_headers():
 # Response
 def extract_job_id(response):
     body = response.json()
-    job_id = body.get("jobId")  # ✅ FIXED
+    job_id = body.get("jobId") 
 
     if not job_id:
         raise ValueError(f"No jobId returned. Response: {body}")
@@ -92,18 +92,18 @@ def run_downstream(**context):
     total_airbyte_postgres_rows = sum(s["rows_loaded"] for s in airbyte_postgres_summary)
 
     send_slack_message(
-        f": *All sources loaded — pipeline complete*\n\n"
-        f">*Date:* `{ds}`\n\n"
-        f">*S3 source*\n"
-        f"> Table: `{s3_summary['table']}`\n"
-        f"> Rows loaded: `{s3_summary['rows_loaded']}`\n\n"
-        f">*Google Sheets*\n"
-        f"> Table: `{sheets_summary['table']}`\n"
-        f"> Rows loaded: `{sheets_summary['rows_loaded']}`\n\n"
-        f">*Airbyte S3 streams*\n"
-        f"> Total rows loaded: `{total_airbyte_s3_rows}`\n\n"
-        f">*Airbyte Postgres sales*\n"
-        f"> Total rows loaded: `{total_airbyte_postgres_rows}`"
+        f": All sources loaded\n\n"
+        f" `{ds}`\n\n"
+        f"S3 source\n"
+        f"Table: `{s3_summary['table']}`\n"
+        f"Rows loaded: `{s3_summary['rows_loaded']}`\n\n"
+        f"Google Sheets\n"
+        f"Table: `{sheets_summary['table']}`\n"
+        f"Rows loaded: `{sheets_summary['rows_loaded']}`\n\n"
+        f"Airbyte S3 streams\n"
+        f"Total rows loaded: `{total_airbyte_s3_rows}`\n\n"
+        f"Airbyte Postgres sales\n"
+        f"Total rows loaded: `{total_airbyte_postgres_rows}`"
     )
 
 
@@ -233,7 +233,7 @@ with DAG(
 
     trigger_dbt = TriggerDagRunOperator(
     task_id="trigger_dbt_transformation",
-    trigger_dag_id="kate_cosmos_dag",
+    trigger_dag_id="supplychain_cosmos_dag",
     wait_for_completion=True,
 )
 

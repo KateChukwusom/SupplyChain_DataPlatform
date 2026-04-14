@@ -1,8 +1,11 @@
-from cosmos.config import ProjectConfig, ExecutionConfig, ProfileConfig
+from cosmos.config import ProjectConfig, ExecutionConfig, ProfileConfig, RenderConfig
 from cosmos.profiles import SnowflakeUserPasswordProfileMapping
 from airflow import DAG
-from cosmos import DbtDag, ProjectConfig, ProfileConfig, RenderConfig
+from cosmos import DbtDag
 from datetime import datetime
+from cosmos.constants import InvocationMode, LoadMode
+from airflow.sdk import Variable
+
 
 DBT_PROJECT_PATH = "/opt/airflow/dags/dbt/supplychain360"
 EXECUTION_PATH = "/usr/local/airflow/dbt-venv/bin/dbt"
@@ -28,19 +31,34 @@ profile_config = ProfileConfig(
     ),
 )
 
-kate_dag = DbtDag(
+
+render_config = RenderConfig(
+    # Use the cached LS mode to keep the scheduler fast
+    load_method=LoadMode.DBT_LS,
+    # Explicitly stay in subprocess mode for the venv
+    invocation_mode=InvocationMode.SUBPROCESS,
+    # Pointer to the specific venv location from the Dockerfile
+    dbt_executable_path="/usr/local/airflow/dbt-venv/bin/dbt",
+    dbt_deps=False
+)
+cosmos_dag = DbtDag(
     # dbt/cosmos-specific parameters
-    project_config=ProjectConfig(DBT_PROJECT_PATH),
+    project_config=project_config,
     profile_config=profile_config,
     execution_config=exec_config,
+    render_config=render_config,
     operator_args={
-        "install_deps": True,  # install any necessary dependencies before running any dbt command
-        "full_refresh": True,  # used only in dbt commands that support this flag
+        "install_deps": False,
+          "append_env": True,  
+        "full_refresh": True,
+        "env": {
+            "COSMOS_CONN_SNOWFLAKE_PASSWORD": Variable.get("COSMOS_CONN_SNOWFLAKE_PASSWORD")
+        }
     },
     # normal dag parameters
-    schedule="@daily",
+    schedule=None,
     start_date=datetime(2023, 1, 1),
     catchup=False,
-    dag_id="kate_cosmos_dag",
+    dag_id="supplychain_cosmos_dag",
     default_args={"retries": 0},
 )

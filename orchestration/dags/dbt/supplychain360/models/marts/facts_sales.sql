@@ -1,5 +1,5 @@
 
--- Model: fct_sales
+-- Model: facts_sales
 -- Record of every sales transaction —
 --          
 -- Grain: One row per transaction

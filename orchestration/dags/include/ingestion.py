@@ -3,7 +3,7 @@
 # dags/helpers/ingestion_tasks.py
 #
 # This file is the bridge between the existing ingestion code
-# and Airflow. It does not rewrite the ingestion logic — it wraps it.
+# and Airflow. It does not rewrite the ingestion logic  it wraps it.
 #
 # Each function here is what gets passed to a PythonOperator in the DAG.
 # Its job is:

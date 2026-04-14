@@ -1,6 +1,6 @@
 
 --  Business facing model for warehouse efficiency analysis. Aggregates daily metrics to warehouse
---  level and classifies each warehouse by efficiency tier for operational decision making
+--  level 
 -- Grain: One row per warehouse
 
 

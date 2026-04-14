@@ -35,6 +35,10 @@ def _infer_and_create_table(hook: SnowflakeHook, table: str, stage_path: str):
     log.info("Creating table if not exists | table=%s | stage_path=%s", table, stage_path)
     hook.run(create_sql)
 
+def _truncate_table(hook: SnowflakeHook, table: str):
+    sql = f"TRUNCATE TABLE IF EXISTS RAW_SUPPLYCHAIN.{table};"
+    log.info("Truncating table | table=%s", table)
+    hook.run(sql)
 #Run COPY INTO for every table and path
 def _run_copy_into(hook: SnowflakeHook, table: str, stage_path: str, source_name: str) -> dict:
     
@@ -104,8 +108,8 @@ def copy_shipments_into_snowflake(**context):
 
     send_slack_message(
         
-        f">*Date:* `{ds}`\n"
-        f">*Rows loaded:* `{summary['rows_loaded']}`"
+        f"Date: `{ds}`\n"
+        f"Rows loaded: `{summary['rows_loaded']}`"
     )
 
 
@@ -135,8 +139,8 @@ def copy_stores_into_snowflake(**context):
 
     send_slack_message(
         
-        f">*Date:* `{ds}`\n"
-        f">*Rows loaded:* `{summary['rows_loaded']}`"
+        f"Date: `{ds}`\n"
+        f"Rows loaded: `{summary['rows_loaded']}`"
     )
 
 
@@ -153,6 +157,7 @@ def copy_airbyte_s3_into_snowflake(**context):
     for stream in AIRBYTE_S3_STREAMS:
         stage_path = f"{stream}/"
         _infer_and_create_table(hook, stream, stage_path)
+        _truncate_table(hook, stream)
         summary = _run_copy_into(hook, stream, stage_path, source_name=f"airbyte_s3_{stream}")
         summaries.append(summary)
 
@@ -161,9 +166,9 @@ def copy_airbyte_s3_into_snowflake(**context):
     total_rows = sum(s["rows_loaded"] for s in summaries)
     send_slack_message(
         
-        f">*Date:* `{ds}`\n"
-        f">*Streams:* `{', '.join(AIRBYTE_S3_STREAMS)}`\n"
-        f">*Total rows loaded:* `{total_rows}`"
+        f"Date: `{ds}`\n"
+        f"Streams: `{', '.join(AIRBYTE_S3_STREAMS)}`\n"
+        f"Total rows loaded: `{total_rows}`"
     )
 
 
@@ -195,8 +200,8 @@ def copy_airbyte_postgres_into_snowflake(**context):
 
     total_rows = sum(s["rows_loaded"] for s in summaries)
     send_slack_message(
-        f":large_blue_circle: *Airbyte Postgres sales loaded into Snowflake*\n"
-        f">*Date:* `{ds}`\n"
-        f">*Streams:* `{', '.join(AIRBYTE_POSTGRES_STREAMS)}`\n"
-        f">*Total rows loaded:* `{total_rows}`"
+        f"Airbyte Postgres sales loaded into Snowflake\n"
+        f"Date: `{ds}`\n"
+        f"Streams:`{', '.join(AIRBYTE_POSTGRES_STREAMS)}`\n"
+        f"Total rows loaded: `{total_rows}`"
     )
